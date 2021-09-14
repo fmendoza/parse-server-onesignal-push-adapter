@@ -1,5 +1,5 @@
 {
-  "name": "parse-server-onesignal-push-adapter",
+  "name": "@fmendoza/parse-server-onesignal-push-adapter",
   "version": "1.0.0",
   "description": "One Signal push adapter for parse-server",
   "main": "lib/index.js",
