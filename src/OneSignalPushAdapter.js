@@ -111,6 +111,11 @@ export class OneSignalPushAdapter {
       delete data['image_url'];
     }
 
+    if (data['buttons']) {
+      post['buttons'] = data['buttons'];
+      delete data['buttons'];
+    }
+
     post['data'] = data;
 
     return new Promise((resolve, reject) => {
@@ -170,6 +175,11 @@ export class OneSignalPushAdapter {
     if (data['image_url']) {
       post['big_picture'] = data['image_url'];
       delete data['image_url'];
+    }
+
+    if (data['buttons']) {
+      post['buttons'] = data['buttons'];
+      delete data['buttons'];
     }
 
     if (data['uri']) {
