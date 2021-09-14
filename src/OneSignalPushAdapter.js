@@ -40,7 +40,7 @@ export class OneSignalPushAdapter {
       }
       let devices = deviceMap[pushType];
 
-      if(devices.length > 0) {
+      if (devices.length > 0) {
         sendPromises.push(sender(data, devices));
       }
     }
@@ -55,13 +55,13 @@ export class OneSignalPushAdapter {
     return this.validPushTypes;
   }
 
-  sendToAPNS(data,tokens) {
+  sendToAPNS(data, tokens) {
 
-    data= deepcopy(data['data']);
+    data = deepcopy(data['data']);
 
     var post = {};
-    if(data['badge']) {
-      if(data['badge'] == "Increment") {
+    if (data['badge']) {
+      if (data['badge'] == "Increment") {
         post['ios_badgeType'] = 'Increase';
         post['ios_badgeCount'] = 1;
       } else {
@@ -70,45 +70,75 @@ export class OneSignalPushAdapter {
       }
       delete data['badge'];
     }
-    if(data['alert']) {
-      post['contents'] = {en: data['alert']};
+
+    if (data['title']) {
+      post['headings'] = {
+        en: data['title']
+      };
+      delete data['title'];
+    }
+
+    if (data['alert']) {
+      post['contents'] = { en: data['alert'] };
       delete data['alert'];
     }
-    if(data['sound']) {
+
+    if (data['sound']) {
       post['ios_sound'] = data['sound'];
       delete data['sound'];
     }
-    if(data['background_data'] == true || data['content-available'] == 1) {
+
+    if (data['content-available'] == 1) {
       post['content_available'] = true;
-      delete data['background_data'];
       delete data['content-available'];
     }
+
+    if (data['push_time']) {
+      post['send_after'] = data['push_time'];
+      delete data['push_time'];
+    }
+
+    if (data['uri']) {
+      post['url'] = data['uri'];
+      delete data["uri"];
+    }
+
+    if (data["mutable-content"] == 1) {
+      post["mutable_content"] = true;
+      delete data["mutable-content"];
+    }
+
+    if (data['image_url']) {
+      post['ios_attachments'] = data['image_url'];
+      delete data['image_url'];
+    }
+
     post['data'] = data;
 
     let promise = new Parse.Promise();
 
     var chunk = 2000 // OneSignal can process 2000 devices at a time
-    var tokenlength=tokens.length;
+    var tokenlength = tokens.length;
     var offset = 0
     // handle onesignal response. Start next batch if there's not an error.
-    let handleResponse = function(wasSuccessful) {
+    let handleResponse = function (wasSuccessful) {
       if (!wasSuccessful) {
         return promise.reject("OneSignal Error");
       }
 
-      if(offset >= tokenlength) {
+      if (offset >= tokenlength) {
         promise.resolve()
       } else {
         this.sendNext();
       }
     }.bind(this)
 
-    this.sendNext = function() {
+    this.sendNext = function () {
       post['include_ios_tokens'] = [];
-      tokens.slice(offset,offset+chunk).forEach(function(i) {
+      tokens.slice(offset, offset + chunk).forEach(function (i) {
         post['include_ios_tokens'].push(i['deviceToken'])
       })
-      offset+=chunk;
+      offset += chunk;
       this.sendToOneSignal(post, handleResponse);
     }.bind(this)
 
@@ -117,53 +147,63 @@ export class OneSignalPushAdapter {
     return promise;
   }
 
-  sendToGCM(data,tokens) {
-    data= deepcopy(data['data']);
+  sendToGCM(data, tokens) {
+    data = deepcopy(data['data']);
 
     var post = {};
 
-    if(data['alert']) {
-      post['contents'] = {en: data['alert']};
-      delete data['alert'];
-    }
-    if(data['title']) {
-      post['title'] = {en: data['title']};
+    if (data['title']) {
+      post['headings'] = {
+        en: data['title']
+      };
       delete data['title'];
     }
-    if(data['uri']) {
+
+    if (data['alert']) {
+      post['contents'] = { en: data['alert'] };
+      delete data['alert'];
+    }
+
+    if (data['push_time']) {
+      post['send_after'] = data['push_time'];
+      delete data['push_time'];
+    }
+
+    if (data['image_url']) {
+      post['big_picture'] = data['image_url'];
+      delete data['image_url'];
+    }
+
+    if (data['uri']) {
       post['url'] = data['uri'];
     }
-    if(data['background_data'] == true || data['android_background_data'] == true) {
-      post['android_background_data'] = true;
-      delete data['background_data'];
-      delete data['android_background_data'];
-    }
+
     post['data'] = data;
 
     let promise = new Parse.Promise();
 
     var chunk = 2000 // OneSignal can process 2000 devices at a time
-    var tokenlength=tokens.length;
+    var tokenlength = tokens.length;
     var offset = 0
     // handle onesignal response. Start next batch if there's not an error.
-    let handleResponse = function(wasSuccessful) {
+    let handleResponse = function (wasSuccessful) {
       if (!wasSuccessful) {
         return promise.reject("OneSIgnal Error");
       }
 
-      if(offset >= tokenlength) {
+      if (offset >= tokenlength) {
         promise.resolve()
       } else {
         this.sendNext();
       }
     }.bind(this);
 
-    this.sendNext = function() {
+    this.sendNext = function () {
       post['include_android_reg_ids'] = [];
-      tokens.slice(offset,offset+chunk).forEach(function(i) {
+      tokens.slice(offset, offset + chunk).forEach(function (i) {
         post['include_android_reg_ids'].push(i['deviceToken'])
       })
-      offset+=chunk;
+      offset += chunk;
       this.sendToOneSignal(post, handleResponse);
     }.bind(this)
 
@@ -175,7 +215,7 @@ export class OneSignalPushAdapter {
   sendToOneSignal(data, cb) {
     let headers = {
       "Content-Type": "application/json",
-      "Authorization": "Basic "+this.OneSignalConfig['apiKey']
+      "Authorization": "Basic " + this.OneSignalConfig['apiKey']
     };
     let options = {
       host: "onesignal.com",
@@ -186,18 +226,18 @@ export class OneSignalPushAdapter {
     };
     data['app_id'] = this.OneSignalConfig['appId'];
 
-    let request = this.https.request(options, function(res) {
-      if(res.statusCode < 299) {
+    let request = this.https.request(options, function (res) {
+      if (res.statusCode < 299) {
         cb(true);
       } else {
         console.log('OneSignal Error');
-        res.on('data', function(chunk) {
+        res.on('data', function (chunk) {
           console.log(chunk.toString())
         });
         cb(false)
       }
     });
-    request.on('error', function(e) {
+    request.on('error', function (e) {
       console.log("Error connecting to OneSignal")
       console.log(e);
       cb(false);
