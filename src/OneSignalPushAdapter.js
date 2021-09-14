@@ -4,9 +4,7 @@
 // for ios push.
 
 import { utils } from 'parse-server-push-adapter';
-import ParsePushAdapter from 'parse-server-push-adapter';
 
-const Parse = require('parse/node').Parse;
 var deepcopy = require('deepcopy');
 
 export class OneSignalPushAdapter {
@@ -44,7 +42,7 @@ export class OneSignalPushAdapter {
         sendPromises.push(sender(data, devices));
       }
     }
-    return Parse.Promise.when(sendPromises);
+    return Promise.all(sendPromises);
   }
 
   static classifyInstallations(installations, validTypes) {
@@ -115,36 +113,36 @@ export class OneSignalPushAdapter {
 
     post['data'] = data;
 
-    let promise = new Parse.Promise();
+    return new Promise((resolve, reject) => {
 
-    var chunk = 2000 // OneSignal can process 2000 devices at a time
-    var tokenlength = tokens.length;
-    var offset = 0
-    // handle onesignal response. Start next batch if there's not an error.
-    let handleResponse = function (wasSuccessful) {
-      if (!wasSuccessful) {
-        return promise.reject("OneSignal Error");
-      }
+      var chunk = 2000 // OneSignal can process 2000 devices at a time
+      var tokenlength = tokens.length;
+      var offset = 0
+      // handle onesignal response. Start next batch if there's not an error.
+      let handleResponse = function (wasSuccessful) {
+        if (!wasSuccessful) {
+          return reject("OneSignal Error");
+        }
 
-      if (offset >= tokenlength) {
-        promise.resolve()
-      } else {
-        this.sendNext();
-      }
-    }.bind(this)
+        if (offset >= tokenlength) {
+          resolve(true);
+        } else {
+          this.sendNext();
+        }
+      }.bind(this)
 
-    this.sendNext = function () {
-      post['include_ios_tokens'] = [];
-      tokens.slice(offset, offset + chunk).forEach(function (i) {
-        post['include_ios_tokens'].push(i['deviceToken'])
-      })
-      offset += chunk;
-      this.sendToOneSignal(post, handleResponse);
-    }.bind(this)
+      this.sendNext = function () {
+        post['include_ios_tokens'] = [];
+        tokens.slice(offset, offset + chunk).forEach(function (i) {
+          post['include_ios_tokens'].push(i['deviceToken'])
+        })
+        offset += chunk;
+        this.sendToOneSignal(post, handleResponse);
+      }.bind(this)
 
-    this.sendNext()
+      this.sendNext()
 
-    return promise;
+    });
   }
 
   sendToGCM(data, tokens) {
@@ -180,36 +178,37 @@ export class OneSignalPushAdapter {
 
     post['data'] = data;
 
-    let promise = new Parse.Promise();
+    return new Promise((resolve, reject) => {
 
-    var chunk = 2000 // OneSignal can process 2000 devices at a time
-    var tokenlength = tokens.length;
-    var offset = 0
-    // handle onesignal response. Start next batch if there's not an error.
-    let handleResponse = function (wasSuccessful) {
-      if (!wasSuccessful) {
-        return promise.reject("OneSIgnal Error");
-      }
+      var chunk = 2000 // OneSignal can process 2000 devices at a time
+      var tokenlength = tokens.length;
+      var offset = 0
+      // handle onesignal response. Start next batch if there's not an error.
+      let handleResponse = function (wasSuccessful) {
+        if (!wasSuccessful) {
+          return reject("OneSignal Error");
+        }
 
-      if (offset >= tokenlength) {
-        promise.resolve()
-      } else {
-        this.sendNext();
-      }
-    }.bind(this);
+        if (offset >= tokenlength) {
+          resolve(true);
+        } else {
+          this.sendNext();
+        }
+      }.bind(this);
 
-    this.sendNext = function () {
-      post['include_android_reg_ids'] = [];
-      tokens.slice(offset, offset + chunk).forEach(function (i) {
-        post['include_android_reg_ids'].push(i['deviceToken'])
-      })
-      offset += chunk;
-      this.sendToOneSignal(post, handleResponse);
-    }.bind(this)
+      this.sendNext = function () {
+        post['include_android_reg_ids'] = [];
+        tokens.slice(offset, offset + chunk).forEach(function (i) {
+          post['include_android_reg_ids'].push(i['deviceToken'])
+        })
+        offset += chunk;
+        this.sendToOneSignal(post, handleResponse);
+      }.bind(this)
 
+      this.sendNext();
 
-    this.sendNext();
-    return promise;
+    });
+
   }
 
   sendToOneSignal(data, cb) {
