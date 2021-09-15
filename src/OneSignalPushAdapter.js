@@ -107,7 +107,9 @@ export class OneSignalPushAdapter {
     }
 
     if (data['image_url']) {
-      post['ios_attachments'] = data['image_url'];
+      const timestamp = Date.now().toString()
+      post['ios_attachments'] = {};
+      post['ios_attachments'][timestamp] = data['image_url']
       delete data['image_url'];
     }
 
